@@ -76,6 +76,8 @@ func (k Keeper) update(ctx sdk.Context, grantee sdk.AccAddress, granter sdk.AccA
 func (k Keeper) DispatchActions(ctx sdk.Context, grantee sdk.AccAddress, msgs []sdk.Msg) ([][]byte, error) {
 	results := make([][]byte, len(msgs))
 
+	ctx.Logger().Info("DEBUG: DispatchActions", "grantee", grantee.String(), "msgs", msgs)
+
 	for i, msg := range msgs {
 		signers := msg.GetSigners()
 		if len(signers) != 1 {
@@ -89,10 +91,12 @@ func (k Keeper) DispatchActions(ctx sdk.Context, grantee sdk.AccAddress, msgs []
 		if !granter.Equals(grantee) {
 			authorization, _ := k.GetCleanAuthorization(ctx, grantee, granter, sdk.MsgTypeURL(msg))
 			if authorization == nil {
+				ctx.Logger().Info("DEBUG: authorization not found", "grantee", grantee.String(), "granter", granter.String(), "msg", sdk.MsgTypeURL(msg))
 				return nil, sdkerrors.ErrUnauthorized.Wrap("authorization not found")
 			}
 			resp, err := authorization.Accept(ctx, msg)
 			if err != nil {
+				ctx.Logger().Info("DEBUG: authorization accept failed", "grantee", grantee.String(), "granter", granter.String(), "msg", sdk.MsgTypeURL(msg), "err", err)
 				return nil, err
 			}
 
@@ -102,10 +106,12 @@ func (k Keeper) DispatchActions(ctx sdk.Context, grantee sdk.AccAddress, msgs []
 				err = k.update(ctx, grantee, granter, resp.Updated)
 			}
 			if err != nil {
+				ctx.Logger().Info("DEBUG: authorization update failed", "grantee", grantee.String(), "granter", granter.String(), "msg", sdk.MsgTypeURL(msg), "err", err)
 				return nil, err
 			}
 
 			if !resp.Accept {
+				ctx.Logger().Info("DEBUG: authorization not accepted", "grantee", grantee.String(), "granter", granter.String(), "msg", sdk.MsgTypeURL(msg))
 				return nil, sdkerrors.ErrUnauthorized
 			}
 		}
