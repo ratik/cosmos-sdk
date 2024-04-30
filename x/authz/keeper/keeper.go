@@ -5,16 +5,15 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/gogo/protobuf/proto"
-	abci "github.com/tendermint/tendermint/abci/types"
-	"github.com/tendermint/tendermint/libs/log"
-
 	"github.com/cosmos/cosmos-sdk/baseapp"
 	"github.com/cosmos/cosmos-sdk/codec"
 	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	"github.com/cosmos/cosmos-sdk/x/authz"
+	"github.com/gogo/protobuf/proto"
+	abci "github.com/tendermint/tendermint/abci/types"
+	"github.com/tendermint/tendermint/libs/log"
 )
 
 type Keeper struct {
@@ -204,10 +203,12 @@ func (k Keeper) GetAuthorizations(ctx sdk.Context, grantee sdk.AccAddress, grant
 func (k Keeper) GetCleanAuthorization(ctx sdk.Context, grantee sdk.AccAddress, granter sdk.AccAddress, msgType string) (cap authz.Authorization, expiration time.Time) {
 	ctx.Logger().Info("DEBUG: GetCleanAuthorization key", "key", grantStoreKey(grantee, granter, msgType))
 	grant, found := k.getGrant(ctx, grantStoreKey(grantee, granter, msgType))
+	ctx.Logger().Info("DEBUG: GetCleanAuthorization key", "key", grantStoreKey(grantee, granter, msgType))
 	if !found {
 		return nil, time.Time{}
 	}
-	if grant.Expiration.Before(ctx.BlockHeader().Time) {
+	nilTime := time.Time{}
+	if grant.Expiration != nilTime && grant.Expiration.Before(ctx.BlockHeader().Time) {
 		k.DeleteGrant(ctx, grantee, granter, msgType)
 		return nil, time.Time{}
 	}

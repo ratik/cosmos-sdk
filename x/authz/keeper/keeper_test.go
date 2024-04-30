@@ -64,6 +64,14 @@ func (s *TestSuite) TestKeeper() {
 	authorization, _ = app.AuthzKeeper.GetCleanAuthorization(ctx, granteeAddr, granterAddr, bankSendAuthMsgType)
 	s.Require().Nil(authorization)
 
+	s.T().Log("verify if authorization with expiration is nil")
+	x = &banktypes.SendAuthorization{SpendLimit: newCoins}
+	err = app.AuthzKeeper.SaveGrant(ctx, granteeAddr, granterAddr, x, time.Time{})
+	s.Require().NoError(err)
+	authorization, _ = app.AuthzKeeper.GetCleanAuthorization(ctx, granteeAddr, granterAddr, bankSendAuthMsgType)
+	s.Require().NotNil(authorization)
+	s.Require().Equal(authorization.MsgTypeURL(), bankSendAuthMsgType)
+
 	s.T().Log("verify if authorization is accepted")
 	x = &banktypes.SendAuthorization{SpendLimit: newCoins}
 	err = app.AuthzKeeper.SaveGrant(ctx, granteeAddr, granterAddr, x, now.Add(time.Hour))
