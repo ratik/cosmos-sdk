@@ -76,6 +76,8 @@ func (k Keeper) update(ctx sdk.Context, grantee sdk.AccAddress, granter sdk.AccA
 func (k Keeper) DispatchActions(ctx sdk.Context, grantee sdk.AccAddress, msgs []sdk.Msg) ([][]byte, error) {
 	results := make([][]byte, len(msgs))
 
+	ctx.Logger().Info("DEBUG: DispatchActions", "grantee", grantee.String(), "msgs", msgs)
+
 	for i, msg := range msgs {
 		signers := msg.GetSigners()
 		if len(signers) != 1 {
@@ -89,10 +91,12 @@ func (k Keeper) DispatchActions(ctx sdk.Context, grantee sdk.AccAddress, msgs []
 		if !granter.Equals(grantee) {
 			authorization, _ := k.GetCleanAuthorization(ctx, grantee, granter, sdk.MsgTypeURL(msg))
 			if authorization == nil {
+				ctx.Logger().Info("DEBUG: authorization not found", "grantee", grantee.String(), "granter", granter.String(), "msg", sdk.MsgTypeURL(msg))
 				return nil, sdkerrors.ErrUnauthorized.Wrap("authorization not found")
 			}
 			resp, err := authorization.Accept(ctx, msg)
 			if err != nil {
+				ctx.Logger().Info("DEBUG: authorization accept failed", "grantee", grantee.String(), "granter", granter.String(), "msg", sdk.MsgTypeURL(msg), "err", err)
 				return nil, err
 			}
 
@@ -102,10 +106,12 @@ func (k Keeper) DispatchActions(ctx sdk.Context, grantee sdk.AccAddress, msgs []
 				err = k.update(ctx, grantee, granter, resp.Updated)
 			}
 			if err != nil {
+				ctx.Logger().Info("DEBUG: authorization update failed", "grantee", grantee.String(), "granter", granter.String(), "msg", sdk.MsgTypeURL(msg), "err", err)
 				return nil, err
 			}
 
 			if !resp.Accept {
+				ctx.Logger().Info("DEBUG: authorization not accepted", "grantee", grantee.String(), "granter", granter.String(), "msg", sdk.MsgTypeURL(msg))
 				return nil, sdkerrors.ErrUnauthorized
 			}
 		}
@@ -151,6 +157,8 @@ func (k Keeper) SaveGrant(ctx sdk.Context, grantee, granter sdk.AccAddress, auth
 
 	bz := k.cdc.MustMarshal(&grant)
 	skey := grantStoreKey(grantee, granter, authorization.MsgTypeURL())
+	ctx.Logger().Info("DEBUG: SaveGrant key", skey)
+
 	store.Set(skey, bz)
 	return ctx.EventManager().EmitTypedEvent(&authz.EventGrant{
 		MsgTypeUrl: authorization.MsgTypeURL(),
@@ -194,6 +202,7 @@ func (k Keeper) GetAuthorizations(ctx sdk.Context, grantee sdk.AccAddress, grant
 // (grantee, granter, message name) grant. If there is no grant `nil` is returned.
 // If the grant is expired, the grant is revoked, removed from the storage, and `nil` is returned.
 func (k Keeper) GetCleanAuthorization(ctx sdk.Context, grantee sdk.AccAddress, granter sdk.AccAddress, msgType string) (cap authz.Authorization, expiration time.Time) {
+	ctx.Logger().Info("DEBUG: GetCleanAuthorization key", grantStoreKey(grantee, granter, msgType))
 	grant, found := k.getGrant(ctx, grantStoreKey(grantee, granter, msgType))
 	if !found {
 		return nil, time.Time{}
