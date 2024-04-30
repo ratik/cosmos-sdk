@@ -109,17 +109,22 @@ func (k Keeper) DispatchActions(ctx context.Context, grantee sdk.AccAddress, msg
 					"failed to get grant with given granter: %s, grantee: %s & msgType: %s ", sdk.AccAddress(granter), grantee, sdk.MsgTypeURL(msg))
 			}
 
+			sdkCtx.Logger().Warn("DEBUG: grant", "grant", grant, "now", now)
+
 			if grant.Expiration != nil && grant.Expiration.Before(now) {
+				sdkCtx.Logger().Warn("DEBUG: grant.Expiration", "grant.Expiration", grant.Expiration, "now", now)
 				return nil, authz.ErrAuthorizationExpired
 			}
 
 			authorization, err := grant.GetAuthorization()
 			if err != nil {
+				sdkCtx.Logger().Error("DEBUG: failed to get authorization from grant", "error", err)
 				return nil, err
 			}
 
 			resp, err := authorization.Accept(sdkCtx, msg)
 			if err != nil {
+				sdkCtx.Logger().Error("DEBUG: failed to accept authorization for message", "error", err)
 				return nil, err
 			}
 
@@ -133,10 +138,12 @@ func (k Keeper) DispatchActions(ctx context.Context, grantee sdk.AccAddress, msg
 				err = k.update(ctx, grantee, granter, updated)
 			}
 			if err != nil {
+				sdkCtx.Logger().Error("DEBUG: failed to update grant", "error", err)
 				return nil, err
 			}
 
 			if !resp.Accept {
+				sdkCtx.Logger().Error("DEBUG: authorization	rejected", "granter", granter, "grantee", grantee, "msg", msg)
 				return nil, sdkerrors.ErrUnauthorized
 			}
 		}
