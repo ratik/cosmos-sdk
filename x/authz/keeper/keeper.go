@@ -157,7 +157,7 @@ func (k Keeper) SaveGrant(ctx sdk.Context, grantee, granter sdk.AccAddress, auth
 
 	bz := k.cdc.MustMarshal(&grant)
 	skey := grantStoreKey(grantee, granter, authorization.MsgTypeURL())
-	ctx.Logger().Info("DEBUG: SaveGrant key", skey)
+	ctx.Logger().Info("DEBUG: SaveGrant key", "key", skey)
 
 	store.Set(skey, bz)
 	return ctx.EventManager().EmitTypedEvent(&authz.EventGrant{
@@ -202,7 +202,7 @@ func (k Keeper) GetAuthorizations(ctx sdk.Context, grantee sdk.AccAddress, grant
 // (grantee, granter, message name) grant. If there is no grant `nil` is returned.
 // If the grant is expired, the grant is revoked, removed from the storage, and `nil` is returned.
 func (k Keeper) GetCleanAuthorization(ctx sdk.Context, grantee sdk.AccAddress, granter sdk.AccAddress, msgType string) (cap authz.Authorization, expiration time.Time) {
-	ctx.Logger().Info("DEBUG: GetCleanAuthorization key", grantStoreKey(grantee, granter, msgType))
+	ctx.Logger().Info("DEBUG: GetCleanAuthorization key", "key", grantStoreKey(grantee, granter, msgType))
 	grant, found := k.getGrant(ctx, grantStoreKey(grantee, granter, msgType))
 	if !found {
 		return nil, time.Time{}
